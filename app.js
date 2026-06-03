@@ -8,7 +8,7 @@ document.getElementById("sidebar").classList.remove("active");
 
 /* 🔐 دخول الأدمن */
 function openAdmin(){
-let pass = prompt("أدخل كلمة مرور الأدمن:");
+let pass = prompt("1997");
 
 /*
 ⚠️ هذه كلمة المرور الافتراضية
