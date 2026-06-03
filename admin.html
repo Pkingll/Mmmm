@@ -3,42 +3,58 @@
 <head>
 <meta charset="UTF-8">
 <title>لوحة التحكم</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
 
-<h2 class="header">لوحة التحكم</h2>
+<style>
+body{
+margin:0;
+font-family:Cairo;
+background:#06131f;
+color:white;
+padding:20px;
+}
 
-<select id="subject">
-<option value="aqida">العقيدة</option>
-<option value="hadith">الحديث</option>
-<option value="fiqh">الفقه</option>
-<option value="usul">أصول الفقه</option>
-<option value="tafsir">التفسير</option>
-</select>
+input,select,button{
+width:100%;
+padding:10px;
+margin:8px 0;
+border-radius:10px;
+border:none;
+}
 
-<select id="type">
-<option value="pdf">PDF</option>
-<option value="image">صورة</option>
-<option value="audio">صوت</option>
-</select>
-
-<input id="title" placeholder="العنوان">
-<input type="file" id="file">
-
-<button onclick="upload()">رفع</button>
+button{
+background:#d4af37;
+font-weight:bold;
+cursor:pointer;
+}
+</style>
 
 <script type="module">
-import { db, storage } from "./firebase.js";
-import { collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc }
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-window.upload = async function(){
+import { getStorage, ref, uploadBytes, getDownloadURL }
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
+const firebaseConfig={
+apiKey:"YOUR_KEY",
+authDomain:"YOUR_DOMAIN",
+projectId:"YOUR_PROJECT_ID",
+storageBucket:"YOUR_PROJECT_ID.appspot.com"
+};
+
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+const storage=getStorage(app);
+
+window.uploadFile=async function(){
 
 let subject=document.getElementById("subject").value;
 let type=document.getElementById("type").value;
 let title=document.getElementById("title").value;
 let file=document.getElementById("file").files[0];
+
+if(!file) return alert("اختاري ملف");
 
 let fileRef=ref(storage,subject+"/"+file.name);
 
@@ -52,7 +68,50 @@ title,type,url,time:Date.now()
 
 alert("تم الرفع");
 }
+
+window.addFawaid=async function(){
+let text=document.getElementById("fawaid").value;
+
+await addDoc(collection(db,"fawaid"),{
+text,time:Date.now()
+});
+
+alert("تمت إضافة فائدة");
+}
 </script>
+</head>
+
+<body>
+
+<h2>لوحة التحكم</h2>
+
+<select id="subject">
+<option value="aqida">العقيدة</option>
+<option value="hadith">الحديث</option>
+<option value="fiqh">الفقه</option>
+<option value="usul">أصول الفقه</option>
+<option value="history">التاريخ</option>
+<option value="dawah">الدعوة</option>
+<option value="tajweed">التجويد</option>
+<option value="nahw">النحو</option>
+<option value="english">الإنجليزي</option>
+<option value="tafsir">التفسير</option>
+</select>
+
+<select id="type">
+<option value="pdf">PDF</option>
+<option value="audio">صوت</option>
+<option value="image">صورة</option>
+</select>
+
+<input id="title" placeholder="عنوان الملف">
+<input type="file" id="file">
+<button onclick="uploadFile()">رفع ملف</button>
+
+<hr>
+
+<input id="fawaid" placeholder="إضافة فائدة فقهية">
+<button onclick="addFawaid()">إضافة فائدة</button>
 
 </body>
 </html>
