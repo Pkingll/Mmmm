@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>لوحة التحكم</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h2 class="header">لوحة التحكم</h2>
+
+<select id="subject">
+<option value="aqida">العقيدة</option>
+<option value="hadith">الحديث</option>
+<option value="fiqh">الفقه</option>
+<option value="usul">أصول الفقه</option>
+<option value="tafsir">التفسير</option>
+</select>
+
+<select id="type">
+<option value="pdf">PDF</option>
+<option value="image">صورة</option>
+<option value="audio">صوت</option>
+</select>
+
+<input id="title" placeholder="العنوان">
+<input type="file" id="file">
+
+<button onclick="upload()">رفع</button>
+
+<script type="module">
+import { db, storage } from "./firebase.js";
+import { collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
+window.upload = async function(){
+
+let subject=document.getElementById("subject").value;
+let type=document.getElementById("type").value;
+let title=document.getElementById("title").value;
+let file=document.getElementById("file").files[0];
+
+let fileRef=ref(storage,subject+"/"+file.name);
+
+await uploadBytes(fileRef,file);
+
+let url=await getDownloadURL(fileRef);
+
+await addDoc(collection(db,subject),{
+title,type,url,time:Date.now()
+});
+
+alert("تم الرفع");
+}
+</script>
+
+</body>
+</html>
