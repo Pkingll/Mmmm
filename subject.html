@@ -10,35 +10,26 @@ body{
 margin:0;
 font-family:Cairo;
 color:white;
-
-/* 🖼️ الخلفية */
-background-image:url("https://a.top4top.io/p_38068co2c0.jpg");
-background-size:cover;
-background-position:center;
-background-attachment:fixed;
+background:url("https://a.top4top.io/p_38068co2c0.jpg") center/cover fixed;
 }
 
-/* طبقة شفافة */
 .overlay{
 min-height:100vh;
 background:rgba(0,0,0,0.75);
 padding-bottom:20px;
 }
 
-/* 🔁 الشريط المتحرك */
 .marquee{
 background:rgba(0,0,0,0.7);
 padding:10px;
-overflow:hidden;
 white-space:nowrap;
-border-bottom:1px solid rgba(255,255,255,0.2);
+overflow:hidden;
 }
 
 .marquee span{
 display:inline-block;
 padding-left:100%;
 animation:move 18s linear infinite;
-font-size:16px;
 }
 
 @keyframes move{
@@ -46,37 +37,20 @@ font-size:16px;
 100%{transform:translateX(-100%)}
 }
 
-/* 📚 اسم المادة */
 .header{
 text-align:center;
 padding:18px;
 font-size:22px;
 background:rgba(0,0,0,0.6);
-backdrop-filter:blur(5px);
 }
 
-/* 📌 صندوق الفوائد */
 .benefits{
 background:rgba(0,0,0,0.75);
 margin:10px;
 padding:12px;
 border-radius:12px;
-backdrop-filter:blur(6px);
-border:1px solid rgba(255,255,255,0.1);
 }
 
-.benefits h3{
-margin:0 0 8px 0;
-font-size:16px;
-color:#4da3ff;
-}
-
-.benefits p{
-margin:5px 0;
-font-size:14px;
-}
-
-/* 🧾 المحتوى */
 .container{
 padding:10px;
 }
@@ -86,37 +60,11 @@ background:rgba(0,0,0,0.6);
 margin:10px 0;
 padding:15px;
 border-radius:12px;
-backdrop-filter:blur(6px);
 }
 
-/* صور */
-img{
-max-width:100%;
-border-radius:10px;
-margin-top:10px;
-}
-
-/* روابط */
-a{
-color:#4da3ff;
-text-decoration:none;
-}
-
-/* صوت */
-audio{
-width:100%;
-margin-top:10px;
-}
-
-/* 📱 تحسين الهاتف */
-@media (max-width:600px){
-.header{
-font-size:18px;
-}
-.card{
-padding:12px;
-}
-}
+img{max-width:100%;border-radius:10px;margin-top:10px}
+audio{width:100%}
+a{color:#4da3ff}
 </style>
 </head>
 
@@ -124,21 +72,17 @@ padding:12px;
 
 <div class="overlay">
 
-<!-- 🔁 الشريط المتحرك -->
 <div class="marquee">
 <span>من يرد الله به خيراً يفقهه في الدين</span>
 </div>
 
-<!-- 📚 اسم المادة -->
-<div class="header" id="title">المادة</div>
+<div class="header" id="title"></div>
 
-<!-- 📌 صندوق الفوائد -->
 <div class="benefits">
 <h3>فوائد المادة</h3>
 <div id="benefitsList"></div>
 </div>
 
-<!-- 🧾 المحتوى -->
 <div class="container" id="list"></div>
 
 </div>
@@ -147,55 +91,57 @@ padding:12px;
 import { db } from "./firebase.js";
 import {
 collection, onSnapshot, doc, getDoc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+}
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const subject = new URLSearchParams(location.search).get("id");
+const id = new URLSearchParams(location.search).get("id");
 
 /* اسم المادة */
-const subjectDoc = await getDoc(doc(db,"subjects",subject));
+const subjectDoc = await getDoc(doc(db,"subjects",id));
+if(subjectDoc.exists()){
 document.getElementById("title").innerText = subjectDoc.data().name;
+}
 
-/* 📌 الفوائد (Realtime) */
-onSnapshot(collection(db,"subjects",subject,"benefits"), snap=>{
-const box=document.getElementById("benefitsList");
-box.innerHTML="";
-
+/* فوائد */
+onSnapshot(collection(db,"subjects",id,"benefits"),snap=>{
+benefitsList.innerHTML="";
 snap.forEach(d=>{
-box.innerHTML += `
-<p>• ${d.data().text}</p>
-`;
+benefitsList.innerHTML += `<p>• ${d.data().text}</p>`;
 });
 });
 
-/* 🧾 المحتوى */
-onSnapshot(collection(db,"subjects",subject,"items"), snap=>{
-const box=document.getElementById("list");
-box.innerHTML="";
+/* دروس */
+onSnapshot(collection(db,"subjects",id,"items"),snap=>{
+list.innerHTML="";
 
 snap.forEach(d=>{
-let data=d.data();
+let data = d.data();
 
 let view="";
 
-if(data.type==="text"){
+switch(data.type){
+case "text":
 view = `<p>${data.content}</p>`;
-}
-else if(data.type==="image"){
+break;
+
+case "image":
 view = `<img src="${data.content}">`;
-}
-else if(data.type==="audio"){
+break;
+
+case "audio":
 view = `<audio controls src="${data.content}"></audio>`;
-}
-else if(data.type==="pdf"){
-view = `<a href="${data.content}" target="_blank">فتح الكتاب</a>`;
+break;
+
+case "pdf":
+view = `<a href="${data.content}" target="_blank">📘 فتح الملف</a>`;
+break;
 }
 
-box.innerHTML += `
+list.innerHTML += `
 <div class="card">
 <h3>${data.title}</h3>
 ${view}
-</div>
-`;
+</div>`;
 });
 });
 </script>
