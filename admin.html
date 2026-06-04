@@ -23,13 +23,20 @@ padding:10px;
 display:flex;
 flex-wrap:wrap;
 gap:10px;
+justify-content:center;
 }
 
 .subject{
-padding:12px;
-background:rgba(0,0,0,0.5);
-border-radius:10px;
+padding:12px 16px;
+background:rgba(0,0,0,0.6);
+border-radius:12px;
 cursor:pointer;
+transition:.2s;
+}
+
+.subject:hover{
+transform:scale(1.05);
+background:rgba(255,255,255,0.15);
 }
 
 .card{
@@ -43,18 +50,19 @@ input,select{
 width:100%;
 padding:10px;
 margin:5px 0;
-border-radius:8px;
 border:none;
+border-radius:8px;
 }
 
 button{
 width:100%;
 padding:10px;
 margin:5px 0;
-background:#4da3ff;
-color:white;
 border:none;
 border-radius:8px;
+background:#4da3ff;
+color:white;
+font-weight:bold;
 }
 
 .item{
@@ -74,10 +82,14 @@ border-radius:8px;
 
 <h2>لوحة التحكم</h2>
 
+<!-- 📚 المواد -->
 <div class="subjects" id="subjects"></div>
 
+<!-- 🟡 المادة المختارة -->
+<h3 id="current">لم يتم اختيار مادة</h3>
+
+<!-- ➕ إضافة -->
 <div class="card">
-<h3 id="current">اختر مادة</h3>
 
 <input id="title" placeholder="عنوان الدرس">
 
@@ -88,16 +100,18 @@ border-radius:8px;
 <option value="pdf">PDF</option>
 </select>
 
-<input id="content" placeholder="المحتوى">
+<input id="content" placeholder="رابط أو نص">
 
-<button onclick="addItem()">إضافة</button>
-</div>
+<button onclick="addItem()">إضافة درس</button>
 
-<div class="card">
+<hr>
+
 <input id="benefit" placeholder="فائدة">
 <button onclick="addBenefit()">إضافة فائدة</button>
+
 </div>
 
+<!-- 📋 عرض -->
 <div class="card">
 <h3>الدروس</h3>
 <div id="items"></div>
@@ -114,78 +128,77 @@ border-radius:8px;
 import { db } from "./firebase.js";
 import {
 collection, addDoc, onSnapshot,
-deleteDoc, doc, updateDoc
+deleteDoc, doc
 }
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-let id=null;
-let editId=null;
+let subjectId=null;
 
-/* مواد */
+/* 📚 تحميل المواد من Firebase */
 onSnapshot(collection(db,"subjects"),snap=>{
 subjects.innerHTML="";
+
 snap.forEach(d=>{
-subjects.innerHTML+=`
-<div class="subject" onclick="select('${d.id}','${d.data().name}')">
-${d.data().name}
+const data = d.data();
+
+subjects.innerHTML += `
+<div class="subject" onclick="selectSubject('${d.id}','${data.name}')">
+${data.name}
 </div>`;
 });
 });
 
-/* اختيار */
-window.select=(x,name)=>{
-id=x;
-current.innerText=name;
+/* 📌 اختيار مادة */
+window.selectSubject=(id,name)=>{
+subjectId=id;
+current.innerText="المادة المختارة: "+name;
 load();
 }
 
-/* إضافة أو تعديل */
+/* ➕ إضافة درس */
 window.addItem=async()=>{
+if(!subjectId){
+alert("اختر مادة أولاً");
+return;
+}
 
-if(editId){
-await updateDoc(doc(db,"subjects",id,"items",editId),{
-title:title.value,
-type:type.value,
-content:content.value
-});
-editId=null;
-}else{
-await addDoc(collection(db,"subjects",id,"items"),{
+await addDoc(collection(db,"subjects",subjectId,"items"),{
 title:title.value,
 type:type.value,
 content:content.value
 });
 }
-}
 
-/* فوائد */
+/* ➕ إضافة فائدة */
 window.addBenefit=async()=>{
-await addDoc(collection(db,"subjects",id,"benefits"),{
+if(!subjectId){
+alert("اختر مادة أولاً");
+return;
+}
+
+await addDoc(collection(db,"subjects",subjectId,"benefits"),{
 text:benefit.value
 });
 }
 
-/* تحميل */
+/* 📥 تحميل */
 function load(){
 
-onSnapshot(collection(db,"subjects",id,"items"),snap=>{
+onSnapshot(collection(db,"subjects",subjectId,"items"),snap=>{
 items.innerHTML="";
 snap.forEach(d=>{
-items.innerHTML+=`
+items.innerHTML += `
 <div class="item">
 ${d.data().title}
-<div>
-<button onclick="editItem('${d.id}','${d.data().title}','${d.data().type}','${d.data().content}')">تعديل</button>
 <button onclick="delItem('${d.id}')">حذف</button>
-</div>
 </div>`;
 });
 });
 
-onSnapshot(collection(db,"subjects",id,"benefits"),snap=>{
+onSnapshot(collection(db,"subjects",subjectId,"benefits"),snap=>{
 benefits.innerHTML="";
 snap.forEach(d=>{
-benefits.innerHTML+=`
+benefits.innerHTML += `
 <div class="item">
 ${d.data().text}
 <button onclick="delBenefit('${d.id}')">حذف</button>
@@ -194,26 +207,13 @@ ${d.data().text}
 });
 }
 
-/* تعديل */
-window.editItem=(id2,t,type,content)=>{
-editId=id2;
-title.value=t;
-typeSelect(type);
-content.value=content;
-}
-
-/* اختيار النوع */
-function typeSelect(val){
-document.getElementById("type").value=val;
-}
-
 /* حذف */
-window.delItem=(x)=>{
-deleteDoc(doc(db,"subjects",id,"items",x));
+window.delItem=(id)=>{
+deleteDoc(doc(db,"subjects",subjectId,"items",id));
 }
 
-window.delBenefit=(x)=>{
-deleteDoc(doc(db,"subjects",id,"benefits",x));
+window.delBenefit=(id)=>{
+deleteDoc(doc(db,"subjects",subjectId,"benefits",id));
 }
 </script>
 
