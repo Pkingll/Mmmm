@@ -13,77 +13,74 @@ color:white;
 background:url("https://a.top4top.io/p_38068co2c0.jpg") center/cover fixed;
 }
 
-body::before{
-content:"";
-position:fixed;
-inset:0;
-background:rgba(0,0,0,0.7);
-z-index:-1;
+.overlay{
+background:rgba(0,0,0,0.75);
+min-height:100vh;
+padding:10px;
 }
 
-.container{
-max-width:900px;
-margin:auto;
-padding:10px;
+.subjects{
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+}
+
+.subject{
+padding:12px;
+background:rgba(0,0,0,0.5);
+border-radius:10px;
+cursor:pointer;
 }
 
 .card{
 background:rgba(0,0,0,0.5);
-padding:12px;
+padding:10px;
 margin:10px 0;
-border-radius:12px;
+border-radius:10px;
 }
 
-.grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:10px;
-}
-
-.btn{
-background:#1a2a45;
-padding:15px;
-border-radius:12px;
-text-align:center;
-cursor:pointer;
-}
-
-input,select,button{
+input,select{
 width:100%;
 padding:10px;
 margin:5px 0;
+border-radius:8px;
+border:none;
+}
+
+button{
+width:100%;
+padding:10px;
+margin:5px 0;
+background:#4da3ff;
+color:white;
 border:none;
 border-radius:8px;
 }
 
-button{
-background:#4da3ff;
-color:white;
-font-weight:bold;
+.item{
+display:flex;
+justify-content:space-between;
+background:rgba(0,0,0,0.4);
+padding:8px;
+margin:5px 0;
+border-radius:8px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="container">
+<div class="overlay">
 
 <h2>لوحة التحكم</h2>
 
-<div class="card">
-<h3>المواد</h3>
-<div class="grid">
-<div class="btn" onclick="select('aqida','العقيدة')">العقيدة</div>
-<div class="btn" onclick="select('hadith','الحديث')">الحديث</div>
-<div class="btn" onclick="select('fiqh','الفقه')">الفقه</div>
-<div class="btn" onclick="select('tafsir','التفسير')">التفسير</div>
-</div>
-</div>
+<div class="subjects" id="subjects"></div>
 
 <div class="card">
 <h3 id="current">اختر مادة</h3>
 
-<input id="title" placeholder="عنوان">
+<input id="title" placeholder="عنوان الدرس">
+
 <select id="type">
 <option value="text">نص</option>
 <option value="image">صورة</option>
@@ -91,9 +88,9 @@ font-weight:bold;
 <option value="pdf">PDF</option>
 </select>
 
-<input id="content" placeholder="رابط أو نص">
+<input id="content" placeholder="المحتوى">
 
-<button onclick="addItem()">إضافة درس</button>
+<button onclick="addItem()">إضافة</button>
 </div>
 
 <div class="card">
@@ -115,42 +112,72 @@ font-weight:bold;
 
 <script type="module">
 import { db } from "./firebase.js";
-import { collection, addDoc, onSnapshot, deleteDoc, doc }
+import {
+collection, addDoc, onSnapshot,
+deleteDoc, doc, updateDoc
+}
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 let id=null;
+let editId=null;
 
+/* مواد */
+onSnapshot(collection(db,"subjects"),snap=>{
+subjects.innerHTML="";
+snap.forEach(d=>{
+subjects.innerHTML+=`
+<div class="subject" onclick="select('${d.id}','${d.data().name}')">
+${d.data().name}
+</div>`;
+});
+});
+
+/* اختيار */
 window.select=(x,name)=>{
 id=x;
-current.innerText="المادة: "+name;
+current.innerText=name;
 load();
 }
 
+/* إضافة أو تعديل */
 window.addItem=async()=>{
-if(!id)return alert("اختر مادة");
+
+if(editId){
+await updateDoc(doc(db,"subjects",id,"items",editId),{
+title:title.value,
+type:type.value,
+content:content.value
+});
+editId=null;
+}else{
 await addDoc(collection(db,"subjects",id,"items"),{
 title:title.value,
 type:type.value,
 content:content.value
 });
 }
+}
 
+/* فوائد */
 window.addBenefit=async()=>{
-if(!id)return alert("اختر مادة");
 await addDoc(collection(db,"subjects",id,"benefits"),{
 text:benefit.value
 });
 }
 
+/* تحميل */
 function load(){
 
 onSnapshot(collection(db,"subjects",id,"items"),snap=>{
 items.innerHTML="";
 snap.forEach(d=>{
 items.innerHTML+=`
-<div class="card">
+<div class="item">
 ${d.data().title}
+<div>
+<button onclick="editItem('${d.id}','${d.data().title}','${d.data().type}','${d.data().content}')">تعديل</button>
 <button onclick="delItem('${d.id}')">حذف</button>
+</div>
 </div>`;
 });
 });
@@ -159,7 +186,7 @@ onSnapshot(collection(db,"subjects",id,"benefits"),snap=>{
 benefits.innerHTML="";
 snap.forEach(d=>{
 benefits.innerHTML+=`
-<div class="card">
+<div class="item">
 ${d.data().text}
 <button onclick="delBenefit('${d.id}')">حذف</button>
 </div>`;
@@ -167,6 +194,20 @@ ${d.data().text}
 });
 }
 
+/* تعديل */
+window.editItem=(id2,t,type,content)=>{
+editId=id2;
+title.value=t;
+typeSelect(type);
+content.value=content;
+}
+
+/* اختيار النوع */
+function typeSelect(val){
+document.getElementById("type").value=val;
+}
+
+/* حذف */
 window.delItem=(x)=>{
 deleteDoc(doc(db,"subjects",id,"items",x));
 }
