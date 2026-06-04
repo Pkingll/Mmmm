@@ -2,246 +2,186 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة التحكم</title>
 
 <style>
 body{
 margin:0;
-padding:20px;
-font-family:Cairo,sans-serif;
-background:#06131f;
-color:#fff;
+font-family:Cairo;
+color:white;
+
+/* 🖼️ الخلفية */
+background-image:url("https://a.top4top.io/p_38068co2c0.jpg");
+background-size:cover;
+background-position:center;
+background-attachment:fixed;
 }
 
-h2{
-text-align:center;
-color:#d4af37;
+/* طبقة شفافة */
+.overlay{
+min-height:100vh;
+background:rgba(0,0,0,0.7);
+display:flex;
+justify-content:center;
+align-items:center;
 }
 
-.box{
-max-width:700px;
-margin:auto;
-background:rgba(255,255,255,.08);
+/* صندوق الدخول */
+.login-box{
+background:rgba(0,0,0,0.7);
 padding:20px;
 border-radius:15px;
+width:300px;
+text-align:center;
+backdrop-filter:blur(5px);
 }
 
-input,select,button,textarea{
+input,button,select{
 width:100%;
-padding:12px;
-margin:8px 0;
+padding:10px;
+margin:5px 0;
 border:none;
-border-radius:10px;
-box-sizing:border-box;
+border-radius:8px;
+}
+
+/* لوحة التحكم */
+.panel{
+display:none;
+width:90%;
+margin:auto;
+padding:20px;
+}
+
+.card{
+background:rgba(0,0,0,0.6);
+padding:15px;
+margin:10px 0;
+border-radius:12px;
+backdrop-filter:blur(5px);
 }
 
 button{
-background:#d4af37;
-font-weight:bold;
 cursor:pointer;
-}
-
-button:hover{
-opacity:.9;
-}
-
-textarea{
-height:120px;
-resize:none;
-}
-
-hr{
-margin:25px 0;
-border:1px solid rgba(255,255,255,.1);
+background:#4da3ff;
+color:white;
 }
 </style>
-
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-
-import {
-getFirestore,
-collection,
-addDoc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-import {
-getStorage,
-ref,
-uploadBytes,
-getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
-
-const firebaseConfig = {
-apiKey: "AIzaSyDsVYtO-AgVHdncllr-Z2GX9-xSXfwSLYU",
-authDomain: "ilm-app-75bf4.firebaseapp.com",
-projectId: "ilm-app-75bf4",
-storageBucket: "ilm-app-75bf4.firebasestorage.app",
-messagingSenderId: "310690252533",
-appId: "1:310690252533:web:22eaaad7ada7774c70e7bc",
-measurementId: "G-S107HLBVZ3"
-};
-
-const app = initializeApp(firebaseConfig);
-
-const db = getFirestore(app);
-const storage = getStorage(app);
-
-window.uploadFile = async function(){
-
-try{
-
-const subject =
-document.getElementById("subject").value;
-
-const type =
-document.getElementById("type").value;
-
-const title =
-document.getElementById("title").value.trim();
-
-const file =
-document.getElementById("file").files[0];
-
-if(!title){
-alert("أدخلي عنوان الملف");
-return;
-}
-
-if(!file){
-alert("اختاري ملفاً");
-return;
-}
-
-const fileName =
-Date.now() + "_" + file.name;
-
-const fileRef =
-ref(storage, `${subject}/${fileName}`);
-
-alert("جاري رفع الملف...");
-
-await uploadBytes(fileRef,file);
-
-const url =
-await getDownloadURL(fileRef);
-
-await addDoc(collection(db,subject),{
-title:title,
-type:type,
-url:url,
-fileName:fileName,
-time:Date.now()
-});
-
-alert("تم رفع الملف بنجاح");
-
-document.getElementById("title").value="";
-document.getElementById("file").value="";
-
-}catch(err){
-
-console.error(err);
-
-alert(
-"خطأ أثناء الرفع:\n\n" +
-err.message
-);
-
-}
-
-}
-
-window.addFawaid = async function(){
-
-try{
-
-const text =
-document.getElementById("fawaid").value.trim();
-
-if(!text){
-alert("اكتبي الفائدة");
-return;
-}
-
-await addDoc(collection(db,"fawaid"),{
-text:text,
-time:Date.now()
-});
-
-document.getElementById("fawaid").value="";
-
-alert("تمت إضافة الفائدة");
-
-}catch(err){
-
-console.error(err);
-
-alert(
-"خطأ:\n\n" +
-err.message
-);
-
-}
-
-}
-
-</script>
 </head>
 
 <body>
 
-<div class="box">
+<!-- 🔐 تسجيل الدخول -->
+<div class="overlay" id="loginScreen">
+<div class="login-box">
+<h3>لوحة التحكم</h3>
+<input type="password" id="pass" placeholder="كلمة المرور">
+<button onclick="login()">دخول</button>
+</div>
+</div>
 
-<h2>لوحة تحكم المعهد</h2>
+<!-- ⚙️ لوحة التحكم -->
+<div class="panel" id="panel">
 
-<select id="subject">
-<option value="aqida">العقيدة</option>
-<option value="hadith">الحديث</option>
-<option value="fiqh">الفقه</option>
-<option value="usul">أصول الفقه</option>
-<option value="history">تاريخ الخلفاء الراشدين</option>
-<option value="dawah">منهج الدعوة</option>
-<option value="tajweed">التجويد</option>
-<option value="literature">الدراسات الأدبية</option>
-<option value="nahw">النحو والصرف</option>
-<option value="computer">الحاسوب</option>
-<option value="english">اللغة الإنجليزية</option>
-<option value="tafsir">التفسير</option>
-</select>
+<h2 style="text-align:center">⚙️ إدارة المحتوى</h2>
+
+<div class="card">
+<h3>➕ إضافة عنصر</h3>
+
+<input id="title" placeholder="العنوان">
 
 <select id="type">
-<option value="pdf">PDF</option>
-<option value="audio">صوتية</option>
-<option value="image">صورة</option>
+<option value="text">نص</option>
+<option value="image">صورة (رابط)</option>
+<option value="audio">صوت (رابط)</option>
+<option value="pdf">كتاب PDF (رابط)</option>
 </select>
 
-<input
-id="title"
-placeholder="عنوان الملف">
+<input id="content" placeholder="المحتوى أو الرابط">
 
-<input
-type="file"
-id="file">
+<button onclick="addItem()">إضافة</button>
+</div>
 
-<button onclick="uploadFile()">
-رفع الملف
-</button>
-
-<hr>
-
-<textarea
-id="fawaid"
-placeholder="أدخلي الفائدة الفقهية">
-</textarea>
-
-<button onclick="addFawaid()">
-إضافة الفائدة
-</button>
+<div id="list"></div>
 
 </div>
+
+<script type="module">
+import { db } from "./firebase.js";
+import {
+collection, addDoc, onSnapshot,
+deleteDoc, doc, updateDoc
+}
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const subject = new URLSearchParams(location.search).get("id");
+
+/* 🔐 تسجيل دخول */
+window.login = ()=>{
+const pass = document.getElementById("pass").value;
+
+if(pass === "1997"){
+document.getElementById("loginScreen").style.display="none";
+document.getElementById("panel").style.display="block";
+load();
+}
+else{
+alert("كلمة المرور غير صحيحة");
+}
+}
+
+/* ➕ إضافة */
+window.addItem = async ()=>{
+await addDoc(collection(db,"subjects",subject,"items"),{
+title:document.getElementById("title").value,
+type:document.getElementById("type").value,
+content:document.getElementById("content").value,
+time:Date.now()
+});
+
+document.getElementById("title").value="";
+document.getElementById("content").value="";
+}
+
+/* 📋 عرض */
+function load(){
+const box=document.getElementById("list");
+
+onSnapshot(collection(db,"subjects",subject,"items"), snap=>{
+box.innerHTML="";
+
+snap.forEach(d=>{
+let data=d.data();
+
+box.innerHTML += `
+<div class="card">
+<h3>${data.title}</h3>
+<small>${data.type}</small>
+<br><br>
+
+<button onclick="edit('${d.id}','${data.title}','${data.content}')">تعديل</button>
+<button onclick="del('${d.id}')">حذف</button>
+</div>
+`;
+});
+});
+}
+
+/* ✏️ تعديل */
+window.edit = async (id,title,content)=>{
+let t=prompt("العنوان",title);
+let c=prompt("المحتوى",content);
+
+await updateDoc(doc(db,"subjects",subject,"items",id),{
+title:t,
+content:c
+});
+}
+
+/* 🗑 حذف */
+window.del = async (id)=>{
+await deleteDoc(doc(db,"subjects",subject,"items",id));
+}
+</script>
 
 </body>
 </html>
