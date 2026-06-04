@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة التحكم</title>
 
 <style>
@@ -10,46 +11,22 @@ margin:0;
 font-family:Cairo;
 color:white;
 
-/* 🖼️ الخلفية */
 background-image:url("https://a.top4top.io/p_38068co2c0.jpg");
 background-size:cover;
 background-position:center;
 background-attachment:fixed;
 }
 
-/* طبقة شفافة */
 .overlay{
 min-height:100vh;
-background:rgba(0,0,0,0.7);
-display:flex;
-justify-content:center;
-align-items:center;
-}
-
-/* صندوق الدخول */
-.login-box{
-background:rgba(0,0,0,0.7);
-padding:20px;
-border-radius:15px;
-width:300px;
-text-align:center;
-backdrop-filter:blur(5px);
-}
-
-input,button,select{
-width:100%;
+background:rgba(0,0,0,0.75);
 padding:10px;
-margin:5px 0;
-border:none;
-border-radius:8px;
 }
 
-/* لوحة التحكم */
 .panel{
-display:none;
-width:90%;
+width:100%;
+max-width:900px;
 margin:auto;
-padding:20px;
 }
 
 .card{
@@ -57,35 +34,58 @@ background:rgba(0,0,0,0.6);
 padding:15px;
 margin:10px 0;
 border-radius:12px;
-backdrop-filter:blur(5px);
+backdrop-filter:blur(6px);
+}
+
+input,select,button{
+width:100%;
+padding:12px;
+margin:6px 0;
+border:none;
+border-radius:10px;
+font-size:15px;
 }
 
 button{
-cursor:pointer;
 background:#4da3ff;
 color:white;
+cursor:pointer;
+font-weight:bold;
+}
+
+.row{
+background:rgba(0,0,0,0.5);
+padding:10px;
+margin:10px 0;
+border-radius:10px;
+}
+
+h2,h3{text-align:center}
+
+@media(max-width:600px){
+.card{padding:12px}
 }
 </style>
 </head>
 
 <body>
 
-<!-- 🔐 تسجيل الدخول -->
-<div class="overlay" id="loginScreen">
-<div class="login-box">
-<h3>لوحة التحكم</h3>
-<input type="password" id="pass" placeholder="كلمة المرور">
-<button onclick="login()">دخول</button>
-</div>
-</div>
+<div class="overlay">
 
-<!-- ⚙️ لوحة التحكم -->
-<div class="panel" id="panel">
+<div class="panel">
 
-<h2 style="text-align:center">⚙️ إدارة المحتوى</h2>
+<h2>لوحة التحكم</h2>
 
+<!-- 📂 اختيار المادة -->
 <div class="card">
-<h3>➕ إضافة عنصر</h3>
+<h3>اختيار المادة</h3>
+<input id="subjectId" placeholder="مثال: aqida">
+<button onclick="loadSubject()">فتح المادة</button>
+</div>
+
+<!-- ➕ إضافة محتوى -->
+<div class="card">
+<h3>إضافة محتوى</h3>
 
 <input id="title" placeholder="العنوان">
 
@@ -96,12 +96,31 @@ color:white;
 <option value="pdf">كتاب PDF (رابط)</option>
 </select>
 
-<input id="content" placeholder="المحتوى أو الرابط">
+<input id="content" placeholder="النص أو الرابط">
 
 <button onclick="addItem()">إضافة</button>
 </div>
 
-<div id="list"></div>
+<!-- ➕ إضافة فائدة -->
+<div class="card">
+<h3>إضافة فائدة</h3>
+<input id="benefitText" placeholder="اكتب الفائدة">
+<button onclick="addBenefit()">إضافة</button>
+</div>
+
+<!-- 📋 المحتوى -->
+<div class="card">
+<h3>المحتوى</h3>
+<div id="items"></div>
+</div>
+
+<!-- 📌 الفوائد -->
+<div class="card">
+<h3>فوائد المادة</h3>
+<div id="benefits"></div>
+</div>
+
+</div>
 
 </div>
 
@@ -113,23 +132,58 @@ deleteDoc, doc, updateDoc
 }
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const subject = new URLSearchParams(location.search).get("id");
+let subject = "";
 
-/* 🔐 تسجيل دخول */
-window.login = ()=>{
-const pass = document.getElementById("pass").value;
+/* 📂 فتح المادة */
+window.loadSubject = ()=>{
+subject = document.getElementById("subjectId").value;
 
-if(pass === "1997"){
-document.getElementById("loginScreen").style.display="none";
-document.getElementById("panel").style.display="block";
-load();
-}
-else{
-alert("كلمة المرور غير صحيحة");
-}
+/* 🧾 المحتوى */
+onSnapshot(collection(db,"subjects",subject,"items"), snap=>{
+const box=document.getElementById("items");
+box.innerHTML="";
+
+snap.forEach(d=>{
+let data=d.data();
+
+box.innerHTML += `
+<div class="row">
+<strong>${data.title}</strong>
+<br>
+<small>${data.type}</small>
+
+<br><br>
+
+<button onclick="editItem('${d.id}','${data.title}','${data.content}','${data.type}')">تعديل</button>
+<button onclick="delItem('${d.id}')">حذف</button>
+</div>
+`;
+});
+});
+
+/* 📌 الفوائد */
+onSnapshot(collection(db,"subjects",subject,"benefits"), snap=>{
+const box=document.getElementById("benefits");
+box.innerHTML="";
+
+snap.forEach(d=>{
+let data=d.data();
+
+box.innerHTML += `
+<div class="row">
+${data.text}
+
+<br><br>
+
+<button onclick="editBenefit('${d.id}','${data.text}')">تعديل</button>
+<button onclick="delBenefit('${d.id}')">حذف</button>
+</div>
+`;
+});
+});
 }
 
-/* ➕ إضافة */
+/* ➕ إضافة محتوى */
 window.addItem = async ()=>{
 await addDoc(collection(db,"subjects",subject,"items"),{
 title:document.getElementById("title").value,
@@ -142,44 +196,45 @@ document.getElementById("title").value="";
 document.getElementById("content").value="";
 }
 
-/* 📋 عرض */
-function load(){
-const box=document.getElementById("list");
-
-onSnapshot(collection(db,"subjects",subject,"items"), snap=>{
-box.innerHTML="";
-
-snap.forEach(d=>{
-let data=d.data();
-
-box.innerHTML += `
-<div class="card">
-<h3>${data.title}</h3>
-<small>${data.type}</small>
-<br><br>
-
-<button onclick="edit('${d.id}','${data.title}','${data.content}')">تعديل</button>
-<button onclick="del('${d.id}')">حذف</button>
-</div>
-`;
+/* ➕ إضافة فائدة */
+window.addBenefit = async ()=>{
+await addDoc(collection(db,"subjects",subject,"benefits"),{
+text:document.getElementById("benefitText").value,
+time:Date.now()
 });
-});
+
+document.getElementById("benefitText").value="";
 }
 
-/* ✏️ تعديل */
-window.edit = async (id,title,content)=>{
-let t=prompt("العنوان",title);
-let c=prompt("المحتوى",content);
+/* ✏️ تعديل المحتوى */
+window.editItem = async (id,title,content,type)=>{
+let t = prompt("العنوان",title);
+let c = prompt("المحتوى",content);
 
 await updateDoc(doc(db,"subjects",subject,"items",id),{
 title:t,
-content:c
+content:c,
+type:type
 });
 }
 
-/* 🗑 حذف */
-window.del = async (id)=>{
+/* ✏️ تعديل الفائدة */
+window.editBenefit = async (id,text)=>{
+let t = prompt("تعديل الفائدة",text);
+
+await updateDoc(doc(db,"subjects",subject,"benefits",id),{
+text:t
+});
+}
+
+/* 🗑 حذف المحتوى */
+window.delItem = async (id)=>{
 await deleteDoc(doc(db,"subjects",subject,"items",id));
+}
+
+/* 🗑 حذف الفائدة */
+window.delBenefit = async (id)=>{
+await deleteDoc(doc(db,"subjects",subject,"benefits",id));
 }
 </script>
 
