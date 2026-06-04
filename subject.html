@@ -2,43 +2,86 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>المادة</title>
-<link rel="stylesheet" href="style.css">
+
+<style>
+body{
+margin:0;
+font-family:Cairo;
+background:#0b1220;
+color:white;
+}
+
+.header{
+padding:20px;
+text-align:center;
+font-size:24px;
+background:#111a2e;
+}
+
+.container{
+padding:10px;
+}
+
+.box{
+background:#16223a;
+margin:10px;
+padding:15px;
+border-radius:12px;
+}
+
+img{max-width:100%;border-radius:10px}
+a{color:#4da3ff}
+</style>
 </head>
+
 <body>
 
-<h2 class="header" id="title"></h2>
-<div id="list"></div>
+<div class="header" id="title">المادة</div>
+
+<div class="container" id="list"></div>
 
 <script type="module">
 import { db } from "./firebase.js";
-import { collection, onSnapshot, query, orderBy }
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {
+collection, onSnapshot, doc, getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const subject = location.search.replace("?","");
+const subject = new URLSearchParams(location.search).get("id");
 
-document.getElementById("title").innerText = subject;
+/* اسم المادة */
+const docSnap = await getDoc(doc(db,"subjects",subject));
+document.getElementById("title").innerText = docSnap.data().name;
 
-const q = query(collection(db,subject),orderBy("time","desc"));
-
-onSnapshot(q,snap=>{
-let list=document.getElementById("list");
-list.innerHTML="";
+/* عرض المحتوى */
+onSnapshot(collection(db,"subjects",subject,"items"), snap=>{
+const box=document.getElementById("list");
+box.innerHTML="";
 
 snap.forEach(d=>{
 let data=d.data();
 
-let content="";
-if(data.type==="pdf") content=`<a href="${data.url}" target="_blank">PDF</a>`;
-if(data.type==="image") content=`<img src="${data.url}">`;
-if(data.type==="audio") content=`<audio controls src="${data.url}"></audio>`;
+let view="";
 
-list.innerHTML+=`
-<div class="card">
+if(data.type==="text"){
+view = `<p>${data.content}</p>`;
+}
+else if(data.type==="image"){
+view = `<img src="${data.content}">`;
+}
+else if(data.type==="audio"){
+view = `<audio controls src="${data.content}"></audio>`;
+}
+else if(data.type==="pdf"){
+view = `<a href="${data.content}" target="_blank">فتح الكتاب</a>`;
+}
+
+box.innerHTML += `
+<div class="box">
 <h3>${data.title}</h3>
-${content}
-</div>`;
+${view}
+</div>
+`;
 });
 });
 </script>
